@@ -36,10 +36,14 @@ jobs:
           - windows-latest      # Windows x64
           - windows-2025        # Windows x64
           - windows-2022        # Windows x64
+          - windows-11-arm      # Windows ARM64
           - macos-latest        # macOS ARM64 (Apple Silicon)
           - macos-15            # macOS ARM64
           - macos-14            # macOS ARM64
-          - macos-13            # macOS x64 (Intel)
+        exclude:
+          # Node 18 has no official Windows ARM64 build (starts at Node 20)
+          - runner: windows-11-arm
+            node: 18
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
