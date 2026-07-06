@@ -18,20 +18,36 @@ jobs:
           node-version: 20
       - run: npm run lint
 
-  # ~25 parallel jobs via a matrix of test shards
-  test-shard:
-    name: Test shard ${{ matrix.shard }}
-    runs-on: ubuntu-latest
+  # ~24 parallel jobs across a variety of runner OS / version / architecture.
+  # (Free plan has no larger-size hosted runners, so we vary OS + arch instead.)
+  test-matrix:
+    name: test / ${{ matrix.runner }} / node ${{ matrix.node }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+        node: [18, 20]
+        runner:
+          - ubuntu-latest       # Linux x64
+          - ubuntu-24.04        # Linux x64
+          - ubuntu-22.04        # Linux x64
+          - ubuntu-24.04-arm    # Linux ARM64
+          - ubuntu-22.04-arm    # Linux ARM64
+          - windows-latest      # Windows x64
+          - windows-2025        # Windows x64
+          - windows-2022        # Windows x64
+          - macos-latest        # macOS ARM64 (Apple Silicon)
+          - macos-15            # macOS ARM64
+          - macos-14            # macOS ARM64
+          - macos-13            # macOS x64 (Intel)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - name: Run test shard ${{ matrix.shard }}
+          node-version: ${{ matrix.node }}
+      - name: Runner info
+        run: node -e "console.log('platform=' + process.platform, 'arch=' + process.arch, 'cpus=' + require('os').cpus().length)"
+      - name: Run tests
         run: npm test
 
   # A single job with ~25 sequential steps
@@ -96,7 +112,7 @@ jobs:
 
   build:
     name: Build
-    needs: [lint, test-shard, pipeline]
+    needs: [lint, test-matrix, pipeline]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
