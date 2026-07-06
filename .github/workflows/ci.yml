@@ -18,23 +18,85 @@ jobs:
           node-version: 20
       - run: npm run lint
 
-  test:
-    name: Test (Node ${{ matrix.node }})
+  # ~25 parallel jobs via a matrix of test shards
+  test-shard:
+    name: Test shard ${{ matrix.shard }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
-      - run: npm test
+          node-version: 20
+      - name: Run test shard ${{ matrix.shard }}
+        run: npm test
+
+  # A single job with ~25 sequential steps
+  pipeline:
+    name: Long pipeline (25 steps)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Step 01 - Environment info
+        run: node --version && npm --version
+      - name: Step 02 - Show working tree
+        run: ls -la
+      - name: Step 03 - Verify package.json
+        run: cat package.json
+      - name: Step 04 - Lint index
+        run: node --check src/index.js
+      - name: Step 05 - Lint math
+        run: node --check src/math.js
+      - name: Step 06 - Run unit tests
+        run: npm test
+      - name: Step 07 - Run app
+        run: npm start
+      - name: Step 08 - Check add()
+        run: node -e "import('./src/math.js').then(m => process.exit(m.add(2,3)===5?0:1))"
+      - name: Step 09 - Check subtract()
+        run: node -e "import('./src/math.js').then(m => process.exit(m.subtract(9,4)===5?0:1))"
+      - name: Step 10 - Check multiply()
+        run: node -e "import('./src/math.js').then(m => process.exit(m.multiply(6,7)===42?0:1))"
+      - name: Step 11 - Check divide()
+        run: node -e "import('./src/math.js').then(m => process.exit(m.divide(20,5)===4?0:1))"
+      - name: Step 12 - Check factorial()
+        run: node -e "import('./src/math.js').then(m => process.exit(m.factorial(5)===120?0:1))"
+      - name: Step 13 - Simulate build A
+        run: echo "Building module A..." && sleep 2
+      - name: Step 14 - Simulate build B
+        run: echo "Building module B..." && sleep 2
+      - name: Step 15 - Simulate build C
+        run: echo "Building module C..." && sleep 2
+      - name: Step 16 - Package artifacts
+        run: echo "Packaging..." && sleep 1
+      - name: Step 17 - Generate report
+        run: echo "report generated at $(date)" > report.txt && cat report.txt
+      - name: Step 18 - Validate report
+        run: test -s report.txt
+      - name: Step 19 - Checksum sources
+        run: shasum src/*.js
+      - name: Step 20 - Count lines of code
+        run: wc -l src/*.js test/*.js
+      - name: Step 21 - Smoke test
+        run: node src/index.js | grep -q "gha-insights-demo"
+      - name: Step 22 - Simulate integration test
+        run: echo "integration OK" && sleep 2
+      - name: Step 23 - Simulate deploy dry-run
+        run: echo "deploy dry-run OK" && sleep 1
+      - name: Step 24 - Cleanup
+        run: rm -f report.txt && echo "cleaned"
+      - name: Step 25 - Done
+        run: echo "Pipeline complete ✅"
 
   build:
     name: Build
-    needs: [lint, test]
+    needs: [lint, test-shard, pipeline]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
