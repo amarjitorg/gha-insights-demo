@@ -1,0 +1,77 @@
+name: Runner sizes
+
+# Demonstrates larger runners (Team plan) across different vCPU / memory sizes.
+#
+# macOS larger runners use BUILT-IN labels (large = Intel, xlarge = Apple Silicon)
+# and work immediately on Team — no provisioning required.
+#
+# Linux & Windows sized runners must be CREATED first by an org owner:
+#   Org -> Settings -> Actions -> Runners -> New GitHub-hosted runner
+# Give each runner one of these exact names so the labels below match:
+#   ubuntu-2core / ubuntu-4core / ubuntu-8core   (2/4/8 vCPU Linux)
+#   windows-2core / windows-4core / windows-8core (2/4/8 vCPU Windows)
+# Once created, re-run this workflow with "linux_windows" enabled.
+
+on:
+  workflow_dispatch:
+    inputs:
+      linux_windows:
+        description: "Also run Linux/Windows sized runners (must be created first)"
+        type: boolean
+        default: false
+
+jobs:
+  # Works now — macOS larger runners are built-in on Team.
+  macos-sizes:
+    name: macOS ${{ matrix.label }}
+    runs-on: ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        label:
+          - macos-15-large     # Intel x64, 12 vCPU / 30 GB
+          - macos-15-xlarge    # Apple Silicon, 6 vCPU / 14 GB
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Runner size info
+        run: node -e "const os=require('os');console.log('label=${{ matrix.label }}','platform='+process.platform,'arch='+process.arch,'vCPU='+os.cpus().length,'memGB='+Math.round(os.totalmem()/1e9))"
+      - run: npm test
+
+  # Requires ubuntu-2core / ubuntu-4core / ubuntu-8core runners to exist.
+  linux-sizes:
+    name: Linux ${{ matrix.size }} vCPU
+    if: ${{ inputs.linux_windows }}
+    runs-on: ubuntu-${{ matrix.size }}core
+    strategy:
+      fail-fast: false
+      matrix:
+        size: [2, 4, 8]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Runner size info
+        run: node -e "const os=require('os');console.log('size=${{ matrix.size }}core','platform='+process.platform,'arch='+process.arch,'vCPU='+os.cpus().length,'memGB='+Math.round(os.totalmem()/1e9))"
+      - run: npm test
+
+  # Requires windows-2core / windows-4core / windows-8core runners to exist.
+  windows-sizes:
+    name: Windows ${{ matrix.size }} vCPU
+    if: ${{ inputs.linux_windows }}
+    runs-on: windows-${{ matrix.size }}core
+    strategy:
+      fail-fast: false
+      matrix:
+        size: [2, 4, 8]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Runner size info
+        run: node -e "const os=require('os');console.log('size=${{ matrix.size }}core','platform='+process.platform,'arch='+process.arch,'vCPU='+os.cpus().length,'memGB='+Math.round(os.totalmem()/1e9))"
+      - run: npm test
